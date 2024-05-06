@@ -1,28 +1,33 @@
 import Express from 'express';
 import bodyParser from 'body-parser';
+import http from "http";
 import cors from 'cors';
 import mongoose from 'mongoose';
 import session from 'express-session';
-import { Server } from 'socket.io';
+import passport from 'passport';
+import { WebSocketServer } from 'ws';
+import path from "path";
 import 'dotenv/config';
-import userRouter from './routes/users.js';
-import gameRouter from './routes/games.js';
+import userRouter from '../backend/src/routes/users.js';
+import gameRouter from '../backend/src/routes/games.js';
+import { isProduction, mongoURI } from './config.js';
+
 
 await mongoose.connect(process.env.MONGO_URI);
 
 const app = Express();
 const port = 5000;
 
+
+const publicDirectoryPath = path.join(
+    new URL(".", import.meta.url).pathname.substring(1)
+);
+
+app.use(passport.initialize());
+app.use(Express.static(publicDirectoryPath));  
+
 app.use(bodyParser.json());
 app.use(cors());
-
-// Express Session Config
-app.use(session({
-    secret: 'linkedin mastermind2 password',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: app.get('env') === 'production'}
-}));
 
 app.use('/api/users', userRouter);
 app.use('/api/games', gameRouter);
@@ -32,5 +37,11 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on ${port}`)
-})
+    console.log(`App is listening on port ${port}`)
+});
+
+app.get("*", (req, res) => {
+    const indexPath = path.resolve(publicDirectoryPath, "index.html");
+    res.sendFile(indexPath);
+});
+

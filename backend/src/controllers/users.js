@@ -2,13 +2,14 @@ import User from "../models/User.js";
 import bcrypt from 'bcryptjs';
 import session from "express-session";
 import crypto from 'crypto';
+import passport from "passport";
+import { loginUser } from "../../config.js";
 
 
 const createPasswordDigest = async (password) => {
     const salt = await bcrypt.genSalt();
     return bcrypt.hash(password, salt);
 };
-
 
 const generateSessionToken = async () => {
     const token = crypto.randomBytes(16).toString('base64url');
@@ -21,11 +22,11 @@ const isPassword = async (username, password) => {
 };
 
 export const createNewUser = async (req, res, next) => {
-    const checkUser = await User.findOne({username: req.body.username});
+    const checkUser = await User.findOne({userName: req.body.userName});
     if (checkUser) return next(new Error('Username is already taken'));
 
     const newUser = new User({
-        userName: req.body.username,
+        userName: req.body.userName,
         passwordDigest: await createPasswordDigest(req.body.password),
         sessionToken: await generateSessionToken(),
         gameHistory: [],
@@ -35,27 +36,24 @@ export const createNewUser = async (req, res, next) => {
         }
     });
     await newUser.save();
-    res.status(200).send(newUser.sessionToken);
+    const { token } = await loginUser(newUser);
+    res.json({
+        userName: newUser.userName,
+        token
+    });
 };
 
-export const loginUser = async (req, res, next) => {
-    if (await isPassword(req.body.username, req.body.password)) {
-        // testing user
-        const user = await User.findOne({userName: req.body.username});
-
-        req.session.regenerate(async function (err) {
-            if (err) next(err)
-            req.session.user = req.body.username
-            req.session.save(function (err) {
-                if (err) return next(err)
-            });
-            user.sessionToken = await generateSessionToken();
-            user.save();
-            res.json(user.sessionToken);
-        });
-    } else {
-        next(new Error('Invalid credentials'));
-    };
+export const loginUserRoute = async (req, res, next) => {
+    passport.authenticate('local', async function (err, user) {
+        if (err) return next(err);
+        if (!user) {
+            const err = new Error('Invalid  credentials');
+            err.statusCode = 400;
+            err.errors = {credentials: 'Invalid Credentials'};
+            return next(err)
+        };
+        return res.json(await loginUser(user));
+    }) (req, res, next);
 };
 
 export const getCurrentUser = async (req, res, next) => {
