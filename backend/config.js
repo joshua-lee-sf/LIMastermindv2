@@ -26,15 +26,14 @@ passport.use(new LocalStrategy({
 }));
 
 export const loginUser = async user => {
-    const userInfo = {userName: user.userName};
     const token = await new Promise((resolve, reject) => jwt.sign(
-        userInfo,
+        {userName: user.userName},
         secret,
         {expiresIn: 3600},
         (err, token) => err ? reject(err) : resolve(token)
     ));
     return {
-        user: userInfo,
+        userName: user.userName,
         token
     };
 };
@@ -46,7 +45,7 @@ passport.use(new JwtStrategy({
 }, async (jwtPayload, done) => {
     try {
         console.log('success')
-        const user = await User.findById(jwtPayload._id)
+        const user = await User.findOne({userName: jwtPayload.userName})
         if (user) return done(null, user);
         return done(null, false);
     }

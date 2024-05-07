@@ -1,6 +1,5 @@
 import User from "../models/User.js";
 import bcrypt from 'bcryptjs';
-import session from "express-session";
 import crypto from 'crypto';
 import passport from "passport";
 import { loginUser } from "../../config.js";
@@ -36,11 +35,8 @@ export const createNewUser = async (req, res, next) => {
         }
     });
     await newUser.save();
-    const { token } = await loginUser(newUser);
-    res.json({
-        userName: newUser.userName,
-        token
-    });
+    const payload = await loginUser(newUser);
+    res.json(payload);
 };
 
 export const loginUserRoute = async (req, res, next) => {
@@ -52,7 +48,8 @@ export const loginUserRoute = async (req, res, next) => {
             err.errors = {credentials: 'Invalid Credentials'};
             return next(err)
         };
-        return res.json(await loginUser(user));
+        const payload = await loginUser(user);
+        return res.cookie('jwt', payload.token).json(payload);
     }) (req, res, next);
 };
 
@@ -66,6 +63,17 @@ export const getCurrentUser = async (req, res, next) => {
         res.status(200).send(JSON.stringify(user));
     };
 };
+
+export const restoreUserController = async (req,res, next) => {
+    if (req.user) {
+        res.json({
+            userName: req.user.userName,
+            token: req.get('Authorization').slice(6)
+        })
+    } else {
+        res.status(404).end();
+    }
+}
 
 export const updateUserScore = async (req, res, next) => {
     const {sessionToken, status} = req.body;

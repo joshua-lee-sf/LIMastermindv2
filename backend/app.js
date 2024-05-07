@@ -3,9 +3,9 @@ import bodyParser from 'body-parser';
 import http from "http";
 import cors from 'cors';
 import mongoose from 'mongoose';
-import session from 'express-session';
 import passport from 'passport';
 import { WebSocketServer } from 'ws';
+import cookieParser from 'cookie-parser';
 import path from "path";
 import 'dotenv/config';
 import userRouter from '../backend/src/routes/users.js';
@@ -28,6 +28,7 @@ app.use(Express.static(publicDirectoryPath));
 
 app.use(bodyParser.json());
 app.use(cors());
+app.use(cookieParser());
 
 app.use('/api/users', userRouter);
 app.use('/api/games', gameRouter);

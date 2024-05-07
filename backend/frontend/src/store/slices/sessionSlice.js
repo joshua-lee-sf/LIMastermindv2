@@ -1,37 +1,27 @@
-import csrfFetch from "./csrf";
 import { createSlice } from "@reduxjs/toolkit";
-import session from "express-session";
 import { useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 
 const initialState = {
-    user: undefined
+    userName: null,
+    token: null
 };
 
 const sessionSlice = createSlice({
     name: 'session',
     initialState,
     reducers: {
-        receiveCurrentUser: (state, action) => {{user: action.payload}},
-        logoutUser: (state) => {
-            state.user = null
+        receiveCurrentUser: (state, action) => ({user: action.payload}),
+        logoutUser: () => {
+            return initialState
         },
-        loginUser: (state, action) => {state},
-        setToken: (state, action) => {
-            state.token = action.payload
-        },
-        clearToken: () => {
-            return {token: null}
+        setUser: (state, action) => {
+            return action.payload
         }
     }
 });
 
-export const { receiveCurrentUser, logoutUser, setToken, clearToken } = sessionSlice.actions;
-
-export const signup = user => startSession(user, 'api/users/register');
-export const login = user => startSession(user, 'api/users/login');
-
-
+export const { receiveCurrentUser, logoutUser, setUser, clearUser } = sessionSlice.actions;
 
 // Helper methods
 const storeCurrentUser = (user) => {

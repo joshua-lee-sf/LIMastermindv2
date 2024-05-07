@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import mastermind2API from './loginRTKQuery';
-import sessionSlice from './slices/sessionSlice';
+import sessionReducer from './slices/sessionSlice';
 
 export default configureStore({
     reducer: {
