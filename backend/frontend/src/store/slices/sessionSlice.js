@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
+
 
 const initialState = {
     userName: null,
@@ -17,22 +16,15 @@ const sessionSlice = createSlice({
         },
         setUser: (state, action) => {
             return action.payload
-        }
+        },
     }
 });
 
-export const { receiveCurrentUser, logoutUser, setUser, clearUser } = sessionSlice.actions;
-
-// Helper methods
-const storeCurrentUser = (user) => {
-    const data = JSON.stringify(user)
-    if (user) sessionStorage.setItem('currentUser', data);
-    else sessionStorage.removeItem('currentUser');
-}
-
-const storeCSRFToken = (response) => {
-    const token = response.headers.get('X-CSRF-Token');
-    if(token) sessionStorage.setItem('X-CSRF-Token', token);
-}
+export const { 
+    receiveCurrentUser, 
+    logoutUser, 
+    setUser, 
+    clearUser 
+} = sessionSlice.actions;
 
 export default sessionSlice.reducer;

@@ -21,22 +21,27 @@ const isPassword = async (username, password) => {
 };
 
 export const createNewUser = async (req, res, next) => {
-    const checkUser = await User.findOne({userName: req.body.userName});
-    if (checkUser) return next(new Error('Username is already taken'));
+        const checkUser = await User.findOne({userName: req.body.userName});
+        if (checkUser) return next(new Error('Username is already taken'));
+        console.log(req.body.userName, req.body.password);
+        if (!!req.body.userName === false) return next(new Error('Username is missing'));
+        if (!!req.body.password === false) return next(new Error('Password is missing'));
 
-    const newUser = new User({
-        userName: req.body.userName,
-        passwordDigest: await createPasswordDigest(req.body.password),
-        sessionToken: await generateSessionToken(),
-        gameHistory: [],
-        gamesRecord: {
-            wins: 0,
-            losses: 0,
-        }
-    });
-    await newUser.save();
-    const payload = await loginUser(newUser);
-    res.json(payload);
+        const newUser = new User({
+            userName: req.body.userName,
+            passwordDigest: await createPasswordDigest(req.body.password),
+            sessionToken: await generateSessionToken(),
+            gameHistory: [],
+            gamesRecord: {
+                wins: 0,
+                losses: 0,
+            }
+        });
+
+        
+        await newUser.save();
+        const payload = await loginUser(newUser);
+        res.cookie('jwt', payload.token).json(payload);
 };
 
 export const loginUserRoute = async (req, res, next) => {

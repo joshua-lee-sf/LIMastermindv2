@@ -1,0 +1,19 @@
+.submit-button{
+    cursor: pointer;
+}
+
+.login-form{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    * {
+        margin: 0.2rem;
+        padding: 0.3rem;
+    }
+    
+    button{
+        width: 15em;
+        height: 2rem;
+        text-align: center;
+        vertical-align: center;
+    }
+}

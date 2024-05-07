@@ -25,13 +25,21 @@ const mastermind2API = createApi({
                 url: '/users/restoreuser',
                 method: 'POST'
             })
+        }),
+        createUser: builder.mutation({
+            query: (credentials) => ({
+                url: '/users/register',
+                method: 'POST',
+                body: credentials
+            })
         })
     })
 });
 
 export const {
     useLoginUserMutation,
-    useRestoreUserMutation
+    useRestoreUserMutation,
+    useCreateUserMutation
 } = mastermind2API;
 
 export default mastermind2API

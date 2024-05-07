@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../../../store/slices/sessionSlice";
 import Cookies from 'js-cookie';
+import './index.scss';
 
 const LogOut = () => {
     const {userName} = useSelector((state) => state.session);
@@ -14,8 +15,8 @@ const LogOut = () => {
     
     return (
         <>
-            <h1>Hello {userName}!</h1>
-            <button onClick={(e) => (handleLogOutClick(e))}>LogOut</button>
+            <h1 id="welcome-message">Hello {userName}!</h1>
+            <button id="logout-button" onClick={(e) => (handleLogOutClick(e))}>LogOut</button>
         </>
     )
 };
