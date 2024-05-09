@@ -1,6 +1,10 @@
 import Game from "../models/Game.js";
 import User from "../models/User.js";
-import Party from '../../Party.js';
+import { secret } from "../../config.js";
+import jwt from 'jsonwebtoken';
+
+export const gameQueue = [];
+export const currentPlayers = {};
 
 const isValidGuess = (guess, masterCode) => {
     if (guess.length !== masterCode.length) return new Error('Guess is not the right length');
@@ -12,10 +16,7 @@ const createMasterCode = async (codeLength) => {
     const res = await fetch(`https://www.random.org/integers/?num=${codeLength}&min=0&max=7&col=1&base=10&format=plain&rnd=new`);
 
     if (!res.ok) {
-        res.json({
-            error: 'Unable to create mastercode'
-        })
-        // return generateRandomString(codeLength);
+        return generateRandomString(codeLength);
     };
     
     const data = await res.text();
@@ -24,8 +25,10 @@ const createMasterCode = async (codeLength) => {
 };
 
 const generateRandomString = (length) => {
-    return Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+    const randomString = Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+    return randomString.match(/^[0-7]+$/) ? randomString : generateRandomString(length);
 };
+
 
 const isWon = (guess, masterCode) => {
     return guess.toUpperCase() === masterCode.toUpperCase() && numberOfMatches(guess, masterCode)[0] === masterCode.length;
@@ -64,11 +67,11 @@ export const createNewGame = async (req, res, next) => {
     const user = req.user;
     const {mastercodeLength, masterCode} = req.body;
 
-    if (user) {
+    if (user && !masterCode) {
         try {
             const newGame = new Game({
                 completedGame: false,
-                masterCode: masterCode ? masterCode : await createMasterCode(mastercodeLength.length > 0 ? parseInt(masterCode) : 4) ,
+                masterCode: await createMasterCode(mastercodeLength.length > 0 ? parseInt(masterCode) : 4) ,
                 players: [user.id],
                 previousGuesses: [],
                 attemptsLeft: 10,
@@ -87,10 +90,53 @@ export const createNewGame = async (req, res, next) => {
         catch (error) {
             console.log(error.message);
         }
+    } 
+};
+
+export const createNewMultiplayerGame = async (ws, masterCode, jwToken) => {
+    const { userName } = jwt.verify(jwToken, secret);
+    const user = await User.findOne({userName});
+
+    if (user) {
+        const newMultiplayerGame = new Game({
+            completedGame: false,
+            masterCode,
+            players: [user.id],
+            previousGuesses: [],
+            attemptsLeft: 10,
+        });
+        if (newMultiplayerGame) {
+            user.gameHistory.push(newMultiplayerGame.id);
+            gameQueue.push(newMultiplayerGame.id);
+            currentPlayers[user.id] = newMultiplayerGame.id
+        };
+        await newMultiplayerGame.save();
+        await user.save();
+
+        ws.send(JSON.stringify({
+            type: 'sendRole',
+            payload: 'CodeBreaker'
+        }));
     }
 };
 
+export const joinMultiplayerGame = async (ws, jwToken) => {
+    const { userName } = jwt.verify(jwToken, secret);
+    const user = await User.findOne({userName});
+    const gameId = gameQueue.shift();
+    const game = await Game.findById(gameId);
+    game.players.push(user);
+    await game.save();
+    await user.save();
+    
+    ws.send(JSON.stringify({
+        type: 'sendRole',
+        payload: 'CodeMaster'
+    }));
+};
+
 export const checkGuess = async (req, res, next) => {
+    
     const {guess, partyId} = req.body
     const { gameId, completedGame, attemptsLeft, masterCode, previousGuesses} = req.game;
     const user = req.user;
@@ -180,9 +226,9 @@ export const checkGuess = async (req, res, next) => {
         const parsedExactMatch = parseInt(humanExactMatch);
         const parsedNearMatch = parseInt(humanNearMatch);
 
-        const {codeBreaker} = Party.parties[partyId];
+        // const {codeBreaker} = Party.parties[partyId];
 
-        if (currentGame.attemptsLeft === 0 || !isValidGuess(guess, masterCode) || currentGame.completedGame || alreadyGuessed) {
+        if (attemptsLeft === 0 || !isValidGuess(guess, masterCode) || completedGame || alreadyGuessed) {
             next(new Error('Could not check guess'));
             return;
         };
@@ -201,15 +247,15 @@ export const checkGuess = async (req, res, next) => {
     
     
         if (parsedExactMatch !== masterCode.length) {
-            currentGame.previousGuesses.push(`Guess: ${guess}, Exact Matches: ${parsedExactMatch}, Near Matches: ${parsedNearMatch}`);
-            currentGame.attemptsLeft -= 1;
+            previousGuesses.push(`Guess: ${guess}, Exact Matches: ${parsedExactMatch}, Near Matches: ${parsedNearMatch}`);
+            req.game.attemptsLeft -= 1;
 
-            if (currentGame.attemptsLeft === 0) {
+            if (attemptsLeft === 0) {
                 res.json({
                     message: 'You have won the game.',
                     user
                 });
-                user.score.wins += 1;
+                user.gamesRecord.wins += 1;
                 
                 codeBreaker.send(JSON.stringify({
                     type: 'sendResult',
@@ -222,8 +268,8 @@ export const checkGuess = async (req, res, next) => {
                 const payload = {
                     humanExactMatch,
                     humanNearMatch, 
-                    attemptsLeft: currentGame.attemptsLeft,
-                    gameId: currentGame.id,
+                    attemptsLeft: req.game.attemptsLeft,
+                    gameId: id,
                 }
                 res.json(payload);
                 
@@ -233,14 +279,14 @@ export const checkGuess = async (req, res, next) => {
                 }))
             }
         } else {
-            currentGame.completedGame = true;
-            await currentGame.save();
+            req.game.completedGame = true;
+            await req.game.save();
             
             res.json({
                 message: 'You have lost the game!',
                 user
             });
-            user.score.losses += 1;
+            user.gamesRecord.losses = user.gamesRecord.losses + 1;
 
             codeBreaker.send(JSON.stringify({
                 type: 'sendResult',
@@ -249,7 +295,7 @@ export const checkGuess = async (req, res, next) => {
                 }
             }))
         };
-        await currentGame.save();
+        await req.game.save();
         await user.save();
     };
 };

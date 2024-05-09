@@ -1,13 +1,11 @@
-import Game from './models/Game.js';
-import Party from './Party.js';
-import User from './models/User.js';
+// will house all of the websocketserver methods
 
 export const incomingMessage = (ws, message) => {
     const parsedMessage = JSON.parse(message);
 
     if (!parsedMessage.type || !parsedMessage.payload) {
         ws.send(JSON.stringify({
-            error: 'Not a valid message'
+            error: "Not a valid message"
         }));
         return;
     };
@@ -16,101 +14,32 @@ export const incomingMessage = (ws, message) => {
         case 'echo':
             echo(ws, message);
             break;
-        case 'sendGuess':
-            sendGuess(ws, parsedMessage.payload);
+        case 'sendRole':
+            receiveRole(ws, message);
             break;
-        case 'notifyCodeMaster':
-            notifyCodeMaster(ws);
-            break;
-        case 'notifyCodeBreaker':
-            notifyCodeBreaker();
-            break;
-        default:
-            ws.send(JSON.stringify({
-                error: 'Invalid Message Type'
-            }));
     };
 };
 
-const echo = (ws, message) => {
-    ws.send(message.toString('utf-8'));
-};
+const receiveRole = () => {
 
-const sendGuess = async (ws, payload) => {
-    
-    if (typeof payload !== 'object') {
-        ws.send(JSON.stringify({
-            error: 'Not an object!'
-        }));
-    };
+}
 
-    const {guess, gameId, sessionToken, partyId} = payload;
+// message should have mastercode and playerId
 
-    const game = await Game.findById(gameId);
-    const user = await User.findOne({sessionToken});
+/*
+Steps for websockets:
 
-    const {codeMaster} = Party.parties[partyId];
+1. establish a connection to the client / other player
+1a. Complete the handshake to establish a WS connection
+2. Once connection is established, create game where 2 players have the same gameId
+3. Have one player create and one player will have the game added to gameHistory 
+    Once game is added to gameHistory, pull game into client so that they can start playing.
+4. Once each player has the game in their game history, assign roles to each player" CodeBreaker / CodeMaster
+5. CodeMaster will create code while CodeBreaker will wait for codebreaker to come up with code.
+6. CodeBreaker will send GuessCode
+7. CodeMaster will analyze code using and have it compared to computer
+8. Send response back to codebreaker
+9. Repeate until CurrentGame.attemptsLeft === 0 or The code gets guessed.
 
-    if (!game.players.includes(user.id)) game.players.push(user.id);
-    
-    codeMaster.send(JSON.stringify({
-        type: 'sendGuessBackend',
-        payload,
-    }));
-};
-
-const notifyCodeMaster = (ws) => {
-    if (typeof payload !== 'object') {
-        ws.send(JSON.stringify({
-            error: 'Not an object!'
-        }));
-    };
-
-    ws.send(payload);
-};
-
-const notifyCodeBreaker = (ws, payload) => {
-    if (typeof payload !== 'object') {
-        ws.send(JSON.stringify({
-            error: 'Not an object!'
-        }));
-    };
-
-    ws.send(payload);
-};
-
-// const checkGuess = async (ws, payload) => {
-//     if (typeof payload !== 'object') {
-//         ws.send(JSON.stringify({
-//             error: 'Not an object!'
-//         }));
-//     };
-
-//     const {
-//         gameId, 
-//         guess, 
-//         sessionToken, 
-//         humanExactMatches, 
-//         humanNearMatches
-//     } = payload;
-    
-//     const data = 
-//     await webSocketCodeMasterAnalyze(
-//         gameId, 
-//         guess, 
-//         sessionToken, 
-//         humanExactMatches, 
-//         humanNearMatches
-//     );
-
-//     // make sure to send to other client
-//     ws.send(JSON.stringify(data));
-// };
-
-export const roleDelivery = async (ws, payload)  => {
-    if (typeof payload !== 'object') {
-        ws.send(JSON.stringify({
-            error: 'Not an object!'
-        }));
-    };
-};
+gameId: [user1, user2]
+*/

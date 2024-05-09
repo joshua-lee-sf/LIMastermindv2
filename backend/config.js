@@ -30,7 +30,7 @@ export const loginUser = async user => {
     const token = await new Promise((resolve, reject) => jwt.sign(
         {userName: user.userName},
         secret,
-        {expiresIn: 3600},
+        // {expiresIn: 3600},
         (err, token) => err ? reject(err) : resolve(token)
     ));
     return {
@@ -69,7 +69,7 @@ export const restoreUser = async(req, res, next) => {
 
 export const restoreGame = async(req, res, next) => {
     const user = req.user
-    const currentGameId = user.gameHistory[user.gameHistory.length - 1];
+    const currentGameId = user?.gameHistory[user.gameHistory.length - 1];
     const currentGame = await Game.findById(currentGameId);
 
     if (currentGame) {

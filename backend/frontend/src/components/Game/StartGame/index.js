@@ -5,16 +5,26 @@ import SinglePlayer from './SinglePlayer';
 
 const StartGame = () => {
     const [createNewGame, {isLoading}] = useCreateNewGameMutation();
-    const [ hideSinglePlayer, setHideSinglePlayer ] = useState(false)
+    const [ hideSinglePlayer, setHideSinglePlayer ] = useState(false);
+    const [ showLoadingMessage, setShowLoadingMessage] = useState(false);
 
     const handleStartMultiplayerGameButtonClick = async (event, mastercodeLength, userName) => {
         event.preventDefault();
+        setHideSinglePlayer(true);
+        setShowLoadingMessage(true);
+        
     };
 
     return(
         <div id="start-game-button-div">
             { !hideSinglePlayer ? <SinglePlayer/> : null}
-            <button className="start-game-button">Start Multiplayer Game</button>
+            <button 
+                className="start-game-button"
+                onClick={(e) => handleStartMultiplayerGameButtonClick(e)}
+            >
+                Start Multiplayer Game
+            </button>
+            {!showLoadingMessage ? null : <p>Waiting for other player to join...</p>}
         </div>
     )
 };
