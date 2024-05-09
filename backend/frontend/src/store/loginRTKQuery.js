@@ -12,34 +12,79 @@ const mastermind2API = createApi({
         return headers
     },
     }),
+    tagTypes: ['Game', 'User'],
     endpoints: builder => ({
         loginUser: builder.mutation({
             query: (credentials) => ({
                 url: '/users/login',
                 method: 'POST',
                 body: credentials
-            })
+            }),
+            invalidatesTags: ['User']
         }),
-        restoreUser: builder.mutation({
+        restoreUser: builder.query({
             query: () => ({
                 url: '/users/restoreuser',
-                method: 'POST'
-            })
+                method: 'GET'
+            }),
+            providesTags: ['User']
         }),
         createUser: builder.mutation({
             query: (credentials) => ({
                 url: '/users/register',
                 method: 'POST',
                 body: credentials
+            }),
+            invalidatesTags: ['User']
+        }),
+        createNewGame: builder.mutation({
+            query: (body) => ({
+                url: '/games/newgame',
+                method: 'POST',
+                body
+            }),
+            invalidatesTags: ['Game']
+        }),
+        restoreGame: builder.query({
+            query: () => ({
+                url:'/games/getcurrentgame',
+                method: 'GET'
+            }),
+            providesTags: ['Game']
+        }),
+        sendGuess: builder.mutation({
+            query: (body) => ({
+                url: '/games/checkguess',
+                method: 'POST',
+                body
+            }),
+            invalidatesTags: ['Game']
+        }),
+        getHint: builder.query({
+            query: (body) => ({
+                url: '/games/gethint',
+                method: 'GET'
             })
+        }),
+        endGameEarly: builder.mutation({
+            query: (body) => ({
+                url: '/games/endgameearly',
+                method: 'POST'
+            }),
+            invalidatesTags: ['Game']
         })
     })
 });
 
 export const {
     useLoginUserMutation,
-    useRestoreUserMutation,
-    useCreateUserMutation
+    useRestoreUserQuery,
+    useRestoreGameQuery,
+    useCreateUserMutation,
+    useCreateNewGameMutation,
+    useSendGuessMutation,
+    useGetHintQuery,
+    useEndGameEarlyMutation,
 } = mastermind2API;
 
 export default mastermind2API

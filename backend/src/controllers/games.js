@@ -3,23 +3,28 @@ import User from "../models/User.js";
 import Party from '../../Party.js';
 
 const isValidGuess = (guess, masterCode) => {
-    if (guess.length !== masterCode.length) return new Error('Guess is invalid');
+    if (guess.length !== masterCode.length) return new Error('Guess is not the right length');
 
-    return !!(guess.match(/^[1-7]+$/));
+    return !!(guess.match(/^[0-7]+$/));
 };
 
-const createMasterCode = async (codeLength = 4) => {
+const createMasterCode = async (codeLength) => {
     const res = await fetch(`https://www.random.org/integers/?num=${codeLength}&min=0&max=7&col=1&base=10&format=plain&rnd=new`);
-    
+
     if (!res.ok) {
-        res.send({
-            masterCode: ""
+        res.json({
+            error: 'Unable to create mastercode'
         })
+        // return generateRandomString(codeLength);
     };
     
     const data = await res.text();
     const masterCode = data.replace(/\n/g, "");
     return masterCode;
+};
+
+const generateRandomString = (length) => {
+    return Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
 };
 
 const isWon = (guess, masterCode) => {
@@ -56,14 +61,14 @@ const numberOfMatches = (guess, masterCode) => {
 };
 
 export const createNewGame = async (req, res, next) => {
-    const user = await User.findOne({sessionToken: req.body.sessionToken});
-    const {codeLength, masterCode} = req.body;
+    const user = req.user;
+    const {mastercodeLength, masterCode} = req.body;
 
     if (user) {
         try {
             const newGame = new Game({
                 completedGame: false,
-                masterCode: masterCode ?? await createMasterCode(codeLength),
+                masterCode: masterCode ? masterCode : await createMasterCode(mastercodeLength.length > 0 ? parseInt(masterCode) : 4) ,
                 players: [user.id],
                 previousGuesses: [],
                 attemptsLeft: 10,
@@ -80,76 +85,95 @@ export const createNewGame = async (req, res, next) => {
             };
         } 
         catch (error) {
-            next(new Error(error));
+            console.log(error.message);
         }
     }
 };
 
 export const checkGuess = async (req, res, next) => {
-    const {guess, sessionToken, game, partyId} = req.body;
-    const user = await User.findOne({sessionToken});
-    const currentGame = await Game.findById(game);
-    const masterCode = currentGame.masterCode;
-    const validGuess = isValidGuess(guess, currentGame.masterCode);
-    const guessArray = alreadyGuessedCode(currentGame.previousGuesses, guess);
+    const {guess, partyId} = req.body
+    const { gameId, completedGame, attemptsLeft, masterCode, previousGuesses} = req.game;
+    const user = req.user;
+    const validGuess = isValidGuess(guess, masterCode);
+    const guessArray = alreadyGuessedCode(previousGuesses, guess);
     const alreadyGuessed = guessArray.includes(guess);
     
     if (!partyId) {
-        
+
+        if (!guess) {
+            const error = new Error ('No code submitted');
+            error.statusCode = 500;
+            error.err = {message: 'No code submitted'};
+            next(error);
+            return;
+        };
 
         if (alreadyGuessed) {
-            next(new Error ('Code has been tried before'));
-        }
+            const error = new Error ('Code has been tried before');
+            error.statusCode = 500;
+            error.err = {message: 'Code has been tried before'};
+            next(error);
+            return;
+        };
     
-        if (currentGame.completedGame) {
-            next(new Error('Game is already completed'));
+        if (completedGame) {
+            console.log('completed game');
+            const error = new Error ('Game is already completed');
+            error.statusCode = 500;
+            error.err = {message: 'Game is already completed'}
+            next(error);
+            return
         };
         
-        if (currentGame && (validGuess === true) && currentGame.attemptsLeft > 0 && !alreadyGuessed) {
-            const masterCode = currentGame.masterCode;
+        if (req.game && (validGuess === true) && attemptsLeft > 0 && !alreadyGuessed) {
             const [exactMatches, nearMatches] = numberOfMatches(guess, masterCode);
-            currentGame.previousGuesses.push(`Guess: ${guess}, Exact Matches: ${exactMatches}, Near Matches: ${nearMatches}`);
+            previousGuesses.push(`Guess: ${guess}, Exact Matches: ${exactMatches}, Near Matches: ${nearMatches}`);
             
             if (isWon(guess, masterCode)) {
-                currentGame.completedGame = true;
-                user.score.wins += 1;
+                req.game.completedGame = true;
+                user.gamesRecord.wins += 1;
     
-                res.status(200).send({
-                    message: 'You have won the game!',
-                    game: currentGame,
+                res.json({
+                    message: 'won',
+                    game: req.game,
                     user
                 });
+                return;
             }
             
-            currentGame.attemptsLeft -= 1;
-            const attemptsLeft = currentGame.attemptsLeft;
+            const newAttempsLeft = attemptsLeft - 1;
+            req.game.attemptsLeft = newAttempsLeft;
 
-            if (currentGame.attemptsLeft === 0) {
-                currentGame.completedGame = true;
-                user.score.losses += 1;
+            if (newAttempsLeft === 0) {
+                req.game.completedGame = true;
+                user.gamesRecord.losses += 1;
                 
-                res.status(200).json({
-                    success: true,
-                    game: currentGame._id,
-                    message: 'Sorry you have lost the game',
+                res.json({
+                    game: gameId,
+                    message: 'lost',
                     user,
                 })
-                
-            } else if (!currentGame.completedGame){
-                res.status(200).json({
+                return;
+            } else if (!completedGame){
+                res.json({
                     success:true,
-                    game: currentGame._id,
-                    guess: guess,
-                    attemptsLeft: attemptsLeft,
-                    nearMatches: nearMatches,
-                    exactMatches: exactMatches,
+                    gameId,
+                    guess,
+                    previousGuesses,
+                    attemptsLeft: newAttempsLeft,
+                    nearMatches,
+                    exactMatches,
                 });
             };
             
         } else {
-            next( validGuess ? validGuess : new Error('Guess is out of bounds'));
+            console.log('else');
+            const error = new Error('Could not check guess');
+            error.statusCode = 500;
+            next(error);
+            return;
         }
-        await currentGame.save();
+        await req.game.save();
         await user.save();
     } else {
         const {humanNearMatch, humanExactMatch} = req.body;
@@ -234,18 +258,19 @@ const alreadyGuessedCode = (guessStringArray, guess) => {
     const guessLength = guess.length;
     const guessCodeArray = [];
     guessStringArray.forEach((guessString) => {
-        guessCodeArray.push(guessString.slice(7, guessLength + 7));
+        const cutGuess = guessString.slice(7, guessLength + 7);
+        guessCodeArray.push(cutGuess);
     })
     return guessCodeArray;
 };
 
 export const endGameEarly = async (req,res,next) => {
-    const currentGame = await Game.findById(req.body.game);
-    const completedGame = currentGame.completedGame;
+    const {completedGame} = req.game
 
-    if (currentGame && !completedGame) {
-        currentGame.completedGame = true
-        await currentGame.save()
+    if (req.game && !completedGame) {
+        const newCompletedGame = true
+        req.game.completedGame = newCompletedGame;
+        await req.game.save()
         res.json({
             message: "Ended the game early"
         })
@@ -282,21 +307,20 @@ export const getMostRecentGame = async(req,res,next) => {
 
 export const getCurrentGame = async (req, res, next) => {
     try{
-        const gameId = req.query.gameId;
-        const game = await Game.findById(gameId);
-        const masterCodeLength = game?.masterCode.length;
+        const currentGame = req.game;
+        const masterCodeLength = currentGame?.masterCode.length;
     
-        
-        if (game) {
-            const {completedGame, attemptsLeft, previousGuesses} = game
+        if (!currentGame.completedGame) {
+            const {_id, completedGame, attemptsLeft, previousGuesses} = currentGame
             await res.json({
+                gameId: _id,
                 completedGame,
                 attemptsLeft,
                 previousGuesses,
                 masterCodeLength,
             });
         } else {
-            next(new Error ('Could not continue game'));
+            res.end();
         }
     } catch (err) {
         console.error(err.message);
@@ -346,7 +370,7 @@ export const getAllGames = async (req, res, next) => {
 };
 
 export const getHint = async (req, res, next) => {
-    const currentGame = await Game.findById(req.body.game);
+    const currentGame = req.game
     const mastercode = currentGame.masterCode;
     let evens = 0
     let odds = 0

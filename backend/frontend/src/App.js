@@ -1,26 +1,24 @@
 import logo from './logo.svg';
 import './App.css';
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import Cookies from 'js-cookie';
+import { useRestoreUserQuery, useRestoreGameQuery } from './store/loginRTKQuery.js';
 import NavBar from './components/NavBar/index.js';
-import { useDispatch } from 'react-redux';
-import { useRestoreUserMutation } from './store/loginRTKQuery.js';
-import { setUser } from './store/slices/sessionSlice.js';
+import StartGame from './components/Game/StartGame/index.js';
+import SinglePlayerBoard from './components/Game/GameBoard/SinglePlayerBoard/index.js';
 
 function App() {
-  const [restoreUser, {isLoading} ] = useRestoreUserMutation();
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    restoreUser().then(({data}) => {
-      dispatch(setUser(data))
-    } );
-  }, []);
+  const { data: currentUser } = useRestoreUserQuery();
+  const { data: currentGame }  = useRestoreGameQuery();
+  const userName = currentUser?.userName;
   
   return (
     <div className="App">
       <header className="App-header">
         <NavBar/>
+        {!userName && !currentGame ? <h2>Please Log In to Start a game</h2> : null}
+        {userName && !currentGame ? <StartGame/> : null}
+        {userName && currentGame ? <SinglePlayerBoard/> : null}
       </header>
     </div>
   );

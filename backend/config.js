@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import passport from "passport";
 import User from "./src/models/User.js";
+import Game from "./src/models/Game.js";
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 
@@ -64,4 +65,15 @@ export const restoreUser = async(req, res, next) => {
         } 
         next();
     })(req, res, next);
+};
+
+export const restoreGame = async(req, res, next) => {
+    const user = req.user
+    const currentGameId = user.gameHistory[user.gameHistory.length - 1];
+    const currentGame = await Game.findById(currentGameId);
+
+    if (currentGame) {
+        req.game = currentGame;
+        next();
+    };
 };

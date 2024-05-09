@@ -46,3 +46,11 @@ app.get("*", (req, res) => {
     res.sendFile(indexPath);
 });
 
+app.use((err, req, res, next) => {
+    if (!err.statusCode) {
+        return next(err);
+    };
+    res.status(err.statusCode);
+    res.json({message: err.message});
+});
+

@@ -1,10 +1,11 @@
+import { useRestoreUserQuery } from "../../store/loginRTKQuery.js";
 import LogIn from "./LogIn/index.js";
 import LogOut from './LogOut/index.js';
-import { useSelector } from "react-redux";
 import './index.scss';
 
 const NavBar = () => {
-    const {userName} = useSelector((state) => state.session);
+
+    const {data: currentUser } = useRestoreUserQuery();
 
     return (
         <div id="nav-bar">
@@ -12,7 +13,7 @@ const NavBar = () => {
                 <h1>Mastermind</h1>
             </div>
             <div className="nav-right">
-                {!!userName ? <LogOut/> : <LogIn/>}
+                {!!currentUser?.userName ? <LogOut/> : <LogIn/>}
             </div>
         </div>
     )

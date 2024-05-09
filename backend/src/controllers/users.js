@@ -23,7 +23,6 @@ const isPassword = async (username, password) => {
 export const createNewUser = async (req, res, next) => {
         const checkUser = await User.findOne({userName: req.body.userName});
         if (checkUser) return next(new Error('Username is already taken'));
-        console.log(req.body.userName, req.body.password);
         if (!!req.body.userName === false) return next(new Error('Username is missing'));
         if (!!req.body.password === false) return next(new Error('Password is missing'));
 
@@ -50,8 +49,8 @@ export const loginUserRoute = async (req, res, next) => {
         if (!user) {
             const err = new Error('Invalid  credentials');
             err.statusCode = 400;
-            err.errors = {credentials: 'Invalid Credentials'};
-            return next(err)
+            err.errors = {message: 'Invalid Credentials'};
+            return next(err);
         };
         const payload = await loginUser(user);
         return res.cookie('jwt', payload.token).json(payload);
