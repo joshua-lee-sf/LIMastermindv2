@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { restoreUser,restoreGame } from "../../config.js";
-import {createNewGame, checkGuess, endGameEarly, getAllGames, getCurrentGame, updateGameHistory, getHint} from "../controllers/games.js";
+import {createNewGame, checkGuess, endGameEarly, getAllGames, getCurrentGame, updateGameHistory, getHint, joinMultiplayerGame, createNewMultiplayerGame} from "../controllers/games.js";
 
 const gameRouter = Router();
 

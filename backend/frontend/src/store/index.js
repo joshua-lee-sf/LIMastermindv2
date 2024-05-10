@@ -6,8 +6,6 @@ import mastermind2API from './loginRTKQuery';
 export default configureStore({
     reducer: {
         [mastermind2API.reducerPath]: mastermind2API.reducer,
-        // session: sessionReducer, 
-        // game: gameReducer,
     },
     middleware: (getDefaultMiddleware) => 
         getDefaultMiddleware().concat(mastermind2API.middleware)

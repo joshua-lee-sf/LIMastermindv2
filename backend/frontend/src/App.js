@@ -10,6 +10,7 @@ import SinglePlayerBoard from './components/Game/GameBoard/SinglePlayerBoard/ind
 function App() {
   const { data: currentUser } = useRestoreUserQuery();
   const { data: currentGame }  = useRestoreGameQuery();
+
   const userName = currentUser?.userName;
   
   return (
@@ -22,6 +23,6 @@ function App() {
       </header>
     </div>
   );
-}
+};
 
 export default App;

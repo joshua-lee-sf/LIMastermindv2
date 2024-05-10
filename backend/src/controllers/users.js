@@ -73,11 +73,11 @@ export const restoreUserController = async (req,res, next) => {
         res.json({
             userName: req.user.userName,
             token: req.get('Authorization').slice(6)
-        })
+        });
     } else {
         res.status(404).end();
-    }
-}
+    };
+};
 
 export const updateUserScore = async (req, res, next) => {
     const {sessionToken, status} = req.body;

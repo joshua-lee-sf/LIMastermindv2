@@ -72,7 +72,7 @@ const mastermind2API = createApi({
                 method: 'POST'
             }),
             invalidatesTags: ['Game']
-        })
+        }),
     })
 });
 

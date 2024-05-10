@@ -12,10 +12,13 @@ import userRouter from '../backend/src/routes/users.js';
 import gameRouter from '../backend/src/routes/games.js';
 import cookie from 'cookie'
 import { isProduction, mongoURI } from './config.js';
+import jwt from 'jsonwebtoken';
+import { secret } from './config.js';
+import User from './src/models/User.js';
 
 // websocket imports:
 import { incomingMessage } from './WebsocketServer.js';
-import { createNewGame, createNewMultiplayerGame, joinMultiplayerGame } from './src/controllers/games.js';
+import { assignRole, createNewGame, createNewMultiplayerGame, joinMultiplayerGame } from './src/controllers/games.js';
 import { gameQueue } from './src/controllers/games.js';
 
 await mongoose.connect(process.env.MONGO_URI);
@@ -56,15 +59,16 @@ const wss = new WebSocketServer({server});
 
 // ws = person connecting to the server / current user
 
-wss.on('connection', function connection(ws, req) {
+wss.on('connection', async function connection(ws, req) {
     console.log('A new client Connected!');
-    const masterCode = req.headers['sec-websocket-protocol'];
     const token = cookie.parse(req.headers.cookie).jwt;
 
-    gameQueue.length > 0 ?  joinMultiplayerGame(ws, token) : createNewMultiplayerGame(ws, masterCode, token);
-    console.log(gameQueue, 'gamequeue');
+    const {userName} = jwt.verify(token, secret);
+    const user = await User.findOne({userName});
 
-    ws.on('message', incomingMessage.bind(null, ws));
+    assignRole(ws, user.userName);
+
+    ws.on('message', incomingMessage.bind(null, ws, userName));
     
     ws.on('close', () => {
     });
