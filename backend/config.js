@@ -30,7 +30,6 @@ export const loginUser = async user => {
     const token = await new Promise((resolve, reject) => jwt.sign(
         {userName: user.userName},
         secret,
-        // {expiresIn: 3600},
         (err, token) => err ? reject(err) : resolve(token)
     ));
     return {

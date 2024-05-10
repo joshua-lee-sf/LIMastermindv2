@@ -218,7 +218,6 @@ export const checkGuess = async (req, res, next) => {
     };
 
     if (completedGame) {
-        console.log('completed game');
         const error = new Error ('Game is already completed');
         error.statusCode = 500;
         error.err = {message: 'Game is already completed'}
@@ -268,7 +267,6 @@ export const checkGuess = async (req, res, next) => {
         };
         
     } else {
-        console.log('else');
         const error = new Error('Could not check guess');
         error.statusCode = 500;
         next(error);

@@ -19,7 +19,6 @@ import User from './src/models/User.js';
 // websocket imports:
 import { incomingMessage } from './WebsocketServer.js';
 import { assignRole, createNewGame, createNewMultiplayerGame, joinMultiplayerGame } from './src/controllers/games.js';
-import { gameQueue } from './src/controllers/games.js';
 
 await mongoose.connect(process.env.MONGO_URI);
 
@@ -43,10 +42,6 @@ app.use('/api/games', gameRouter);
 app.get('/', (req, res) => {
     res.send('Hello, World!');
 });
-
-// app.listen(port, () => {
-//     console.log(`App is listening on port ${port}`)
-// });
 
 app.get("*", (req, res) => {
     const indexPath = path.resolve(publicDirectoryPath, "index.html");

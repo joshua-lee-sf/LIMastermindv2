@@ -19,7 +19,6 @@ const SinglePlayerBoard = () => {
             guess: guessInput,
             gameId: currentGame.gameId,
         });
-        console.log(data);
         if (error) {
             setErrors(error.data.message);
         } else if (data.message) {
